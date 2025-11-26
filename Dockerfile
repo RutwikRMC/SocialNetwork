@@ -1,27 +1,27 @@
-# Build Stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-
-# Copy csproj and restore dependencies
-COPY *.csproj .
-RUN dotnet restore
-
-# Copy everything
-COPY . .
-
-# Publish the project
-RUN dotnet publish -c Release -o /app/publish
-
-# Runtime Stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+# Use .NET 9 ASP.NET runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
-# Copy published output
-COPY --from=build /app/publish .
+# Build stage using .NET 9 SDK
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
 
-# Expose port
-EXPOSE 8080
+# Copy csproj
+COPY *.csproj .
 
-# Start the app
-ENV ASPNETCORE_URLS=http://+:8080
+# Restore
+RUN dotnet restore
+
+# Copy everything else
+COPY . .
+
+# Publish
+RUN dotnet publish -c Release -o /out
+
+# Final stage
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+COPY --from=build /out .
+
+# Run the application
 ENTRYPOINT ["dotnet", "SocialNetwork.dll"]
